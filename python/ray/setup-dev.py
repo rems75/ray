@@ -72,7 +72,8 @@ if __name__ == "__main__":
         "--yes", "-y", action="store_true", help="Don't ask for confirmation.")
     args = parser.parse_args()
 
-    do_link("rllib", force=args.yes, local_path="../../../rllib")
+    # do_link("rllib", force=args.yes, local_path="../../../rllib")
+    do_link("rllib", force=args.yes, local_path="/tmp/code")
     do_link("tune", force=args.yes)
     do_link("sgd", force=args.yes)
     do_link("train", force=args.yes)
