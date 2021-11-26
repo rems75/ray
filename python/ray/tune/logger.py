@@ -3,6 +3,7 @@ import json
 import logging
 import numpy as np
 import os
+import time
 import yaml
 
 from typing import Iterable, TYPE_CHECKING, Dict, List, Optional, TextIO, Type
@@ -575,6 +576,10 @@ class CSVLoggerCallback(LoggerCallback):
         })
         self._trial_files[trial].flush()
 
+        if os.environ.get('FLUSH', False):
+            # Need to close and reopen files for logging to actually happen on our clusters.
+            self.log_trial_start(trial)
+
     def log_trial_end(self, trial: "Trial", failed: bool = False):
         if trial not in self._trial_files:
             return
@@ -664,6 +669,19 @@ class TBXLoggerCallback(LoggerCallback):
 
         self._trial_result[trial] = valid_result
         self._trial_writer[trial].flush()
+
+        if os.environ.get('FLUSH', False):
+            # Need to close and reopen files for logging to actually happen on our clusters.
+            try:
+                path = self._trial_writer[trial].file_writer.event_writer._ev_writer._py_recordio_writer.path
+                self._trial_writer[trial].file_writer.event_writer._ev_writer._py_recordio_writer._writer.flush()
+                while True:
+                    if self._trial_writer[trial].file_writer.event_writer._event_queue.empty():
+                        break
+                    time.sleep(0.1)  # Increased from 0.1 -> X s
+                self._trial_writer[trial].file_writer.event_writer._ev_writer._py_recordio_writer._writer = open(path, 'ab')
+            except:
+                pass
 
     def log_trial_end(self, trial: "Trial", failed: bool = False):
         if trial in self._trial_writer:
